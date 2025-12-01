@@ -1,80 +1,37 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import TodoContainer from "./components/TodoContainer";
 import TodoRow from "./components/TodoRow";
-
-interface TodoTask {
-  id: number;
-  task: string;
-  done: boolean;
-}
-
-const STORAGE_KEY = "TODOS_ITEMS_STORAGE";
+import { useTodos } from "./hooks/UseTodos";
 
 export default function App() {
-  const [tasks, setTasks] = useState<TodoTask[]>([]);
-  const [todo, setTodo] = useState<string>("");
+  const { state, handleCreateTodo, handleToggleTodo } = useTodos();
+  const [todoInput, setTodoInput] = useState<string>("");
 
   const submitTodo = () => {
-    if (todo.trim()) {
-      setTasks((prev) => [
-        ...prev,
-        {
-          id: Math.floor(Math.random() * 10000) + 1, // eh should be high enough
-          task: todo,
-          done: false,
-        },
-      ]);
-      setTodo("");
+    if (todoInput.trim()) {
+      handleCreateTodo(todoInput);
+      setTodoInput("");
     }
   };
 
   const toggleTask = (id: number) => {
-    setTasks(
-      // iterate through the tasks
-      tasks.map((task) =>
-        // if iterated task id matches to passed id, spread the task and replace done with opposite value, else return iteratee
-        task.id === id ? { ...task, done: !task.done } : task,
-      ),
-    );
+    handleToggleTodo(id);
   };
-
-  // load from storage
-  useEffect(() => {
-    (async () => {
-      try {
-        const json = await AsyncStorage.getItem(STORAGE_KEY);
-        if (json) setTasks(JSON.parse(json));
-      } catch (error) {
-        console.log("error");
-        console.log(error);
-      }
-    })(); // runs itself
-  }, []);
-
-  // set to storae
-  useEffect(() => {
-    (async () => {
-      try {
-        console.log("Setting item to storage");
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      } catch (error) {
-        console.log("error");
-        console.log(error);
-      }
-    })();
-  }, [tasks]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.headerText}>Todo List</Text>
-      <TodoContainer submitTodo={submitTodo} todo={todo} setTodo={setTodo} />
+      <TodoContainer
+        submitTodo={submitTodo}
+        todo={todoInput}
+        setTodo={setTodoInput}
+      />
       <ScrollView
         style={styles.scrollview}
         contentContainerStyle={styles.scrollviewContent}
       >
-        {tasks.map((item: TodoTask) => (
+        {state.map((item) => (
           <Pressable onPress={() => toggleTask(item.id)} key={item.id}>
             <TodoRow text={item.task} id={item.id} done={item.done} />
           </Pressable>
